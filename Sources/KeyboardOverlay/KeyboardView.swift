@@ -7,15 +7,19 @@ struct ContentView: View {
     let controller: OverlayController
 
     var body: some View {
-        VStack(spacing: 6) {
-            TopBar(state: state, controller: controller)
-            KeyboardView(state: state)
-                .aspectRatio(KeyboardGeometry.totalWidth / KeyboardGeometry.totalHeight,
-                             contentMode: .fit)
+        // Alles in Units der Fensterbreite → Inhalt skaliert mit dem Fenster,
+        // das Seitenverhältnis ist fix (AppMain setzt contentAspectRatio).
+        GeometryReader { proxy in
+            let unit = proxy.size.width / KeyboardGeometry.contentUnitsWide
+            VStack(spacing: unit * KeyboardGeometry.topBarSpacing) {
+                TopBar(state: state, controller: controller, unit: unit)
+                    .frame(height: unit * KeyboardGeometry.topBarHeight)
+                KeyboardView(state: state)
+            }
+            .padding(unit * KeyboardGeometry.padding)
         }
-        .padding(10)
-        .frame(minWidth: 620, minHeight: 300)
-        .background(.regularMaterial)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
@@ -24,14 +28,27 @@ struct ContentView: View {
 struct TopBar: View {
     @ObservedObject var state: OverlayState
     let controller: OverlayController
+    let unit: CGFloat
+
+    private var captionSize: CGFloat { unit * 0.18 }
 
     var body: some View {
-        HStack(spacing: 12) {
-            Text(state.layoutName)
-                .font(.headline)
+        HStack(spacing: unit * 0.2) {
+            Button {
+                NSApp.terminate(nil)
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: unit * 0.28))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("Tastaturübersicht+ beenden")
 
-            HStack(spacing: 4) {
-                Circle().fill(Color.accentColor).frame(width: 8, height: 8)
+            Text(state.layoutName)
+                .font(.system(size: unit * 0.24, weight: .semibold))
+
+            HStack(spacing: unit * 0.07) {
+                Circle().fill(Color.accentColor).frame(width: unit * 0.12, height: unit * 0.12)
                 Text("\(state.bttReplacements.count) BTT-Ersetzungen")
                 Button {
                     controller.reloadBTT()
@@ -42,19 +59,19 @@ struct TopBar: View {
                 .buttonStyle(.borderless)
                 .help("BTT-Ersetzungen neu laden")
             }
-            .font(.caption)
+            .font(.system(size: captionSize))
             .foregroundStyle(.secondary)
 
-            HStack(spacing: 4) {
-                Circle().fill(Color.orange).frame(width: 8, height: 8)
+            HStack(spacing: unit * 0.07) {
+                Circle().fill(Color.orange).frame(width: unit * 0.12, height: unit * 0.12)
                 Text("Akzenttaste")
             }
-            .font(.caption)
+            .font(.system(size: captionSize))
             .foregroundStyle(.secondary)
 
             if state.liveDeadKeyState != 0 {
                 Text("Akzent aktiv – nächste Taste kombiniert (esc bricht ab)")
-                    .font(.caption)
+                    .font(.system(size: captionSize))
                     .foregroundStyle(.orange)
             }
 
@@ -62,9 +79,9 @@ struct TopBar: View {
 
             if let toast = state.toast {
                 Text(toast)
-                    .font(.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
+                    .font(.system(size: captionSize))
+                    .padding(.horizontal, unit * 0.12)
+                    .padding(.vertical, unit * 0.05)
                     .background(Capsule().fill(Color.accentColor.opacity(0.2)))
                     .transition(.opacity)
             }
@@ -74,6 +91,7 @@ struct TopBar: View {
                     controller.openInputMonitoringSettings()
                 } label: {
                     Label("Eingabeüberwachung erlauben", systemImage: "exclamationmark.triangle")
+                        .font(.system(size: captionSize))
                 }
                 .help("""
                     Ohne die Berechtigung „Eingabeüberwachung“ kann das Overlay \
@@ -81,6 +99,16 @@ struct TopBar: View {
                     trotzdem per Klick umschalten.
                     """)
             }
+
+            HStack(spacing: unit * 0.07) {
+                Image(systemName: "circle.lefthalf.filled")
+                    .font(.system(size: captionSize))
+                    .foregroundStyle(.secondary)
+                Slider(value: $state.windowAlpha, in: 0.25...1)
+                    .frame(width: unit * 1.8)
+                    .controlSize(.mini)
+            }
+            .help("Transparenz des Overlays")
         }
         .animation(.easeInOut(duration: 0.15), value: state.toast)
     }
@@ -128,6 +156,15 @@ struct KeyView: View {
                             .fill(Color.accentColor)
                             .frame(width: unit * 0.14, height: unit * 0.14)
                             .padding(unit * 0.1)
+                    }
+                }
+                .overlay(alignment: .bottom) {
+                    // Orientierungsstrich wie der fühlbare Steg auf F und J.
+                    if KeyboardGeometry.homeRowKeyCodes.contains(cap.keyCode) {
+                        Capsule()
+                            .fill(.secondary)
+                            .frame(width: unit * 0.28, height: unit * 0.05)
+                            .padding(.bottom, unit * 0.12)
                     }
                 }
                 .padding(unit * 0.04)

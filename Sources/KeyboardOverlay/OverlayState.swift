@@ -33,9 +33,18 @@ final class OverlayState: ObservableObject {
     @Published var layoutName: String = ""
     @Published var monitoringActive: Bool = false
     @Published var toast: String?
+    /// Deckkraft des Panels (Transparenz-Slider), persistiert.
+    @Published var windowAlpha: Double {
+        didSet { UserDefaults.standard.set(windowAlpha, forKey: "windowAlpha") }
+    }
 
     let translator = KeyTranslator()
     private var toastTimer: Timer?
+
+    init() {
+        let saved = UserDefaults.standard.double(forKey: "windowAlpha")
+        windowAlpha = saved == 0 ? 1.0 : min(max(saved, 0.25), 1.0)
+    }
 
     /// Effektive Modifier für die Vorschau: Hardware ∪ angeklickt.
     var displayFlags: CGEventFlags {

@@ -37,6 +37,18 @@ enum KeyboardGeometry {
     static let totalWidth: CGFloat = 14.5
     static let totalHeight: CGFloat = 5.7
 
+    // Gesamtinhalt des Fensters in Units (bestimmt das feste Seitenverhältnis):
+    // Rand 0.15 je Seite, Kopfzeile 0.6, Abstand 0.1, Tastatur 5.7.
+    static let padding: CGFloat = 0.15
+    static let topBarHeight: CGFloat = 0.6
+    static let topBarSpacing: CGFloat = 0.1
+    static let contentUnitsWide: CGFloat = totalWidth + 2 * padding
+    static let contentUnitsHigh: CGFloat = totalHeight + topBarHeight + topBarSpacing + 2 * padding
+
+    /// Tasten mit dauerhafter Orientierungsmarkierung (kleiner Strich unten),
+    /// wie die fühlbaren Stege auf F und J der physischen Tastatur.
+    static let homeRowKeyCodes: Set<Int> = [3, 38]  // F, J
+
     /// Deutsches ISO-Layout eines Apple-Keyboards (MacBook / Magic Keyboard).
     /// Keycodes sind virtuelle (layoutunabhängige) Keycodes; welche Zeichen
     /// darauf liegen, entscheidet zur Laufzeit das aktive Layout.
